@@ -24,8 +24,6 @@ GetOptions( "config|c=s" => \$config_file,
             "pid-file=s" => \$pid_file,
             "nofork" => \$nofork,
             "help|h|?" => \$help,
-            "timerange=s" => \$time_range,
-            "runonce" => \$runonce ) or usage();
 
 # did they ask for help?
 usage() if ( $help );
@@ -39,8 +37,6 @@ my $daemonize = !$nofork;
 my $collector = GRNOC::MPLS::Collector->new( config_file => $config_file,
 					     pid_file => $pid_file,
 					     daemonize => $daemonize,
-					     time_range_cli => $time_range,
-					     run_once => $runonce,
     );
 
 $collector->start();
