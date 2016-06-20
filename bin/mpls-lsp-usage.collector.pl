@@ -31,17 +31,16 @@ GetOptions( "config|c=s" => \$config_file,
 usage() if ( $help );
 
 my $grnoc_log = new GRNOC::Log(
-    config => $config_file
+    config => $logging_file
     );
 
 my $daemonize = !$nofork;
 
 my $collector = GRNOC::MPLS::Collector->new( config_file => $config_file,
-                                                  logging_file => $logging_file,
-                                                  pid_file => $pid_file,
-                                                  daemonize => $daemonize,
-                                                  time_range_cli => $time_range,
-                                                  run_once => $runonce,
+					     pid_file => $pid_file,
+					     daemonize => $daemonize,
+					     time_range_cli => $time_range,
+					     run_once => $runonce,
     );
 
 $collector->start();
