@@ -26,12 +26,12 @@ GetOptions( "config|c=s" => \$config_file,
 usage() if ( $help );
 
 my $config = GRNOC::Config->new(
-    'config_file' => $config_file,
-    'force_array' => 0
+    config_file => $config_file,
+    force_array => 0
     );
 
 my $grnoc_log = GRNOC::Log->new(
-    'config' => $config->get('/config/logging/@config-file')
+    config => $config->get('/config/logging/@config-file')
     );
 
 my $collector = GRNOC::MPLS::Collector->new( config_file => $config_file,
