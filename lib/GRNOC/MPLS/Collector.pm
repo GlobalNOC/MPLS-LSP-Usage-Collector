@@ -1,11 +1,8 @@
-#!/usr/bin/perl
-
 package GRNOC::MPLS::Collector;
 
 use strict;
 use warnings;
 
-use Net::SNMP;
 use Proc::Daemon;
 use Parallel::ForkManager;
 use Math::Round qw( nhimult );
@@ -14,6 +11,9 @@ use JSON;
 use GRNOC::Log;
 use GRNOC::Config;
 use GRNOC::WebService::Client;
+use GRNOC::MPLS::Collector::Driver;
+
+use Data::Dumper;
 
 our $VERSION = '0.1.0';
 
@@ -112,13 +112,22 @@ sub _run {
 	    $self->{'hup'} = 0;
 	    next;
 	}
-
 	$self->_collect();
     }
 }
 
 sub _collect {
-    return;
+    my ($self) = @_;
+    log_info("Collecting...");
+
+    my $forker = Parallel::ForkManager->new($self->{'max_procs'});
+
+    foreach my $node (@{$self->{'nodes'}}) {
+	$forker->start() and next;
+
+	my $driver = GRNOC::MPLS::Collector::Driver->new();
+	$driver->_collect_juniper($node);
+    }
 }
 
 sub _init {
@@ -133,6 +142,8 @@ sub _init {
 
     $self->{'interval'} = $config->get('/config/@interval');
     $self->{'interval'} //= 10;
+
+    $self->{'max_procs'} = $config->get('/config/@max_procs');
 
     $self->{'tsds_push_service'} = $config->get('/config/@tsds_push_service');
     $self->{'tsds_user'} = $config->get('/config/@tsds_user');

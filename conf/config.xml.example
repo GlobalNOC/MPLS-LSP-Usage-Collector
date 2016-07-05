@@ -1,4 +1,4 @@
-<config interval='30' tsds_push_service='https://somehost/some/push.cgi' >
+<config interval='30' max_procs='5' tsds_push_service='https://somehost/some/push.cgi' tsds_user="user" tsds_pass="pass" tsds_realm="realm" >
 	<node name='rtsw.newy32aoa.net.internet2.edu' community='some community' ip='x.x.x.x' device='Juniper' version='MX_13.0' />
 	<node name='rtsw.seat.net.internet2.edu' community='some community' ip='x.x.x.x' device='Juniper' version='MX_13.3' />
 </config>
