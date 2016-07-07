@@ -125,8 +125,9 @@ sub _collect {
     foreach my $node (@{$self->{'nodes'}}) {
 	$forker->start() and next;
 
-	my $driver = GRNOC::MPLS::Collector::Driver->new();
-	$driver->_collect_juniper($node);
+	my $driver = GRNOC::MPLS::Collector::Driver->new($node);
+	my $stats = $driver->collect_data();
+	print Dumper($stats);
     }
 }
 
