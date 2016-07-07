@@ -130,7 +130,28 @@ sub _collect_juniper {
 
     $session->close();
 
-    my @result = ($name, $state, $octets, $packets, $from, $to, $path_name);
-    return \@result;
+    my $mpls_data;
+
+    while (my ($oid, $value) = each %$name) {
+	$oid =~ s/$mplsLspInfoName/$mplsLspInfoState/;
+	$mpls_data->{$value}->{'state'} = $state->{$oid};
+
+	$oid =~ s/$mplsLspInfoState/$mplsLspInfoOctets/;
+	$mpls_data->{$value}->{'octets'} = $octets->{$oid};
+	
+	$oid =~ s/$mplsLspInfoOctets/$mplsLspInfoPackets/;
+	$mpls_data->{$value}->{'packets'} = $packets->{$oid};
+
+	$oid =~ s/$mplsLspInfoPackets/$mplsLspInfoFrom/;
+	$mpls_data->{$value}->{'from'} = $from->{$oid};
+
+	$oid =~ s/$mplsLspInfoFrom/$mplsLspInfoTo/;
+	$mpls_data->{$value}->{'to'} = $to->{$oid};
+
+	$oid =~ s/$mplsLspInfoTo/$mplsPathInfoName/;
+	$mpls_data->{$value}->{'path_name'} = $path_name->{$oid};
+    }
+
+    return $mpls_data
 }
 1;
