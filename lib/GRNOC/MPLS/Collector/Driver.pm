@@ -4,6 +4,7 @@ use strict;
 use warnings;
 
 use Net::SNMP;
+use JSON;
 
 use GRNOC::Log;
 use GRNOC::Config;
@@ -25,13 +26,48 @@ sub new {
     return $self;
 }
 
+sub submit_data {
+    my ($self, $params) = @_;
+    
+    my $tsds = GRNOC::WebService::Client->new(
+	url => $params->{'tsds_push_service'},
+	uid => $params->{'tsds_user'},
+	passwd => $params->{'tsds_pass'},
+	realm => $params->{'tsds_realm'},
+	usePost => 1
+	);
+
+    foreach my $lsp (keys(%{$params->{'data'}})) {
+    	my $msg = {};
+    	$msg->{'type'} = 'LSP';
+    	$msg->{'time'} = $params->{'timestamp'};
+    	$msg->{'interval'} = $params->{'interval'};
+	
+    	my $meta = {};
+    	$meta->{'node'} = $self->{'name'};
+    	$meta->{'lsp'} = $lsp;
+    	$meta->{'from'} = $params->{'data'}->{$lsp}->{'from'};
+    	$meta->{'to'} = $params->{'data'}->{$lsp}->{'to'};
+    	$meta->{'path_name'} = $params->{'data'}->{$lsp}->{'path_name'};
+    	$msg->{'meta'} = $meta;
+
+    	my $values = {};
+    	$values->{'state'} = $params->{'data'}->{$lsp}->{'state'};
+    	$values->{'octets'} = $params->{'data'}->{$lsp}->{'octets'};
+    	$values->{'packets'} = $params->{'data'}->{$lsp}->{'packets'};
+    	$msg->{'values'} = $values;
+
+    	print Dumper(encode_json($msg));
+    }
+}
+
 sub collect_data { 
     my ($self) = @_;
-    my $res; 
+    my ($timestamp, $res);
     if (lc($self->{'device'}) eq 'juniper') {
-	$res = $self->_collect_juniper();
+	($timestamp, $res) = $self->_collect_juniper();
     }
-    return $res;
+    return ($timestamp, $res);
 }
 
 sub _collect_juniper {
@@ -152,6 +188,6 @@ sub _collect_juniper {
 	$mpls_data->{$value}->{'path_name'} = $path_name->{$oid};
     }
 
-    return $mpls_data
+    return($collection_timestamp, $mpls_data);
 }
 1;

@@ -6,11 +6,9 @@ use warnings;
 use Proc::Daemon;
 use Parallel::ForkManager;
 use Math::Round qw( nhimult );
-use JSON;
 
 use GRNOC::Log;
 use GRNOC::Config;
-use GRNOC::WebService::Client;
 use GRNOC::MPLS::Collector::Driver;
 
 use Data::Dumper;
@@ -126,9 +124,31 @@ sub _collect {
 	$forker->start() and next;
 
 	my $driver = GRNOC::MPLS::Collector::Driver->new($node);
-	my $stats = $driver->collect_data();
-	print Dumper($stats);
+	if (!defined($driver)) {
+	    log_error("Could not create driver for $node->{'name'}");
+	    $forker->finish() and next;
+	}
+
+	my ($timestamp, $stats) = $driver->collect_data();
+	if (!defined($stats)) {
+	    log_error("Could not collect on $node->{'name'}");
+	    $forker->finish() and next;
+	}
+
+	my $res = $driver->submit_data({
+	    interval => $self->{'interval'},
+	    timestamp => $timestamp,
+	    data => $stats,
+	    tsds_push_service => $self->{'tsds_push_service'},
+	    tsds_user => $self->{'tsds_user'},
+	    tsds_pass => $self->{'tsds_pass'},
+	    tsds_realm => $self->{'tsds_realm'}
+				       });
+
+	$forker->finish();
     }
+
+    $forker->wait_all_children();
 }
 
 sub _init {
