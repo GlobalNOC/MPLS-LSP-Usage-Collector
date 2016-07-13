@@ -134,7 +134,7 @@ sub _collect {
 	    log_error("Could not collect on $node->{'name'}");
 	    $forker->finish() and next;
 	}
-#	print Dumper($stats);
+
 	my $res = $driver->submit_data({
 	    interval => $self->{'interval'},
 	    timestamp => $timestamp,
@@ -148,7 +148,7 @@ sub _collect {
 	if (!defined $res) {
 	    log_error("Could not submit data on $node->{'name'}");
 	}
-#	print Dumper($res);
+
 	$forker->finish();
     }
 

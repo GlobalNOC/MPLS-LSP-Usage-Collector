@@ -118,6 +118,7 @@ sub _collect_juniper {
     	-hostname => $self->{'ip'},
     	-community => $self->{'community'},
     	-version => 'snmpv2c',
+	-maxmsgsize => 65535,
     	-translate => [-octetstring => 0]
     	);
     
@@ -134,7 +135,6 @@ sub _collect_juniper {
 
     if (!$name) {
     	log_error("Error getting mplsLspInfoName for $self->{'name'}: " . $session->error());
-#	warn($session->error());
     	$session->close();
     	return;
     }
