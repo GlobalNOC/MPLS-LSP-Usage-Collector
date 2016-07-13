@@ -29,8 +29,16 @@ sub new {
 sub submit_data {
     my ($self, $params) = @_;
     
-    my $tsds = GRNOC::WebService::Client->new(
-	url => $params->{'tsds_push_service'},
+    my $tsds_push = GRNOC::WebService::Client->new(
+	url => "$params->{'tsds_push_service'}/push.cgi",
+	uid => $params->{'tsds_user'},
+	passwd => $params->{'tsds_pass'},
+	realm => $params->{'tsds_realm'},
+	usePost => 1
+	);
+
+    my $tsds_admin = GRNOC::WebService::Client->new(
+	url => "$params->{'tsds_push_service'}/admin.cgi",
 	uid => $params->{'tsds_user'},
 	passwd => $params->{'tsds_pass'},
 	realm => $params->{'tsds_realm'},
@@ -39,16 +47,13 @@ sub submit_data {
 
     foreach my $lsp (keys(%{$params->{'data'}})) {
     	my $msg = {};
-    	$msg->{'type'} = 'LSP';
+    	$msg->{'type'} = 'lsp';
     	$msg->{'time'} = $params->{'timestamp'};
     	$msg->{'interval'} = $params->{'interval'};
 	
     	my $meta = {};
     	$meta->{'node'} = $self->{'name'};
     	$meta->{'lsp'} = $lsp;
-    	$meta->{'from'} = $params->{'data'}->{$lsp}->{'from'};
-    	$meta->{'to'} = $params->{'data'}->{$lsp}->{'to'};
-    	$meta->{'path_name'} = $params->{'data'}->{$lsp}->{'path_name'};
     	$msg->{'meta'} = $meta;
 
     	my $values = {};
@@ -57,8 +62,37 @@ sub submit_data {
     	$values->{'packets'} = $params->{'data'}->{$lsp}->{'packets'};
     	$msg->{'values'} = $values;
 
-    	print Dumper(encode_json($msg));
+	my $tmp = [];
+	push(@$tmp, $msg);
+	my $json_push = encode_json($tmp);
+	my $res_push = $tsds_push->add_data(data => $json_push);
+	if (!defined $res_push) {
+	    log_error("Could not post data to TSDS: " . $res_push->{'error'});
+	    return; 
+	}
+
+	$msg = {};
+	$msg->{'type'} = 'lsp';
+	$msg->{'node'} = $self->{'name'};
+	$msg->{'lsp'} = $lsp;
+	$msg->{'start'} = $params->{'timestamp'};
+	$msg->{'end'} = undef;
+    	$msg->{'destination'} = $params->{'data'}->{$lsp}->{'from'};
+    	$msg->{'source'} = $params->{'data'}->{$lsp}->{'to'};
+    	$msg->{'path'} = $params->{'data'}->{$lsp}->{'path_name'};
+
+	$tmp = [];
+	push(@$tmp, $msg);
+	my $json_admin = encode_json($tmp);
+	
+	my $res_admin = $tsds_admin->update_measurement_metadata(values => $json_admin);
+	if (!defined $res_admin) {
+	    log_error("Could not post metadata to TSDS: " . $res_admin->{'error'});
+	    return;
+	}
     }
+
+    return 1;
 }
 
 sub collect_data { 
@@ -100,6 +134,7 @@ sub _collect_juniper {
 
     if (!$name) {
     	log_error("Error getting mplsLspInfoName for $self->{'name'}: " . $session->error());
+#	warn($session->error());
     	$session->close();
     	return;
     }
@@ -169,6 +204,8 @@ sub _collect_juniper {
     my $mpls_data;
 
     while (my ($oid, $value) = each %$name) {
+	$value =~ s/[^[:print:]]//g;
+	
 	$oid =~ s/$mplsLspInfoName/$mplsLspInfoState/;
 	$mpls_data->{$value}->{'state'} = $state->{$oid};
 
