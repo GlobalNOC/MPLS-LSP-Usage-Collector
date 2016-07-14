@@ -36,7 +36,7 @@ sub collect_data {
 	log_error("Unsupported device");
 	return;
     }
-    print Dumper($stats);
+
     my $tsds_push = GRNOC::WebService::Client->new(
 	url => "$params->{'tsds_push_service'}/push.cgi",
 	uid => $params->{'tsds_user'},
