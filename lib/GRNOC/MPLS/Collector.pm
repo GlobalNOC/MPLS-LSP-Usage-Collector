@@ -9,7 +9,6 @@ use Math::Round qw( nhimult );
 
 use GRNOC::Log;
 use GRNOC::Config;
-use GRNOC::Counter;
 use GRNOC::MPLS::Collector::Driver;
 
 use Data::Dumper;
@@ -18,9 +17,6 @@ our $VERSION = '0.1.0';
 
 use constant DEFAULT_PID_FILE => '/var/run/mpls-lsp-usage-collector.pid';
 use constant MAX_RATE_VALUE => 2199023255552;
-
-my $counter;
-my %counter_key = (); 
 
 sub new {
     my $caller = shift;
