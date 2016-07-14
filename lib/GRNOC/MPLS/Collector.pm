@@ -9,6 +9,7 @@ use Math::Round qw( nhimult );
 
 use GRNOC::Log;
 use GRNOC::Config;
+use GRNOC::Counter;
 use GRNOC::MPLS::Collector::Driver;
 
 use Data::Dumper;
@@ -16,6 +17,10 @@ use Data::Dumper;
 our $VERSION = '0.1.0';
 
 use constant DEFAULT_PID_FILE => '/var/run/mpls-lsp-usage-collector.pid';
+use constant MAX_RATE_VALUE => 2199023255552;
+
+my $counter;
+my %counter_key = (); 
 
 sub new {
     my $caller = shift;
@@ -129,16 +134,8 @@ sub _collect {
 	    $forker->finish() and next;
 	}
 
-	my ($timestamp, $stats) = $driver->collect_data();
-	if (!defined($stats)) {
-	    log_error("Could not collect on $node->{'name'}");
-	    $forker->finish() and next;
-	}
-
-	my $res = $driver->submit_data({
+	my $res = $driver->collect_data({
 	    interval => $self->{'interval'},
-	    timestamp => $timestamp,
-	    data => $stats,
 	    tsds_push_service => $self->{'tsds_push_service'},
 	    tsds_user => $self->{'tsds_user'},
 	    tsds_pass => $self->{'tsds_pass'},
@@ -180,14 +177,5 @@ sub _init {
     $config->{'force_array'} = 1;
     $self->{'nodes'} = $config->get('/config/node');
 
-    log_info("Creating new webservice client object");
-    my $tsds_svc = GRNOC::WebService::Client->new(
-    	use_keep_alive => 1,
-    	cookieJar => '/tmp/mpls-lsp-usage-collector-cookies.txt',
-    	url => $self->{'tsds_push_service'},
-    	uid => $self->{'tsds_user'},
-    	passwd => $self->{'tsds_pass'},
-    	realm => "Realm Here",
-    	debug => $self->{'debug'}
-    	);
 }
+1;

@@ -26,9 +26,17 @@ sub new {
     return $self;
 }
 
-sub submit_data {
+sub collect_data { 
     my ($self, $params) = @_;
-    
+    my ($timestamp, $stats);
+
+    if (lc($self->{'device'}) eq 'juniper') {
+	($timestamp, $stats) = $self->_collect_juniper();
+    } else {
+	log_error("Unsupported device");
+	return;
+    }
+    print Dumper($stats);
     my $tsds_push = GRNOC::WebService::Client->new(
 	url => "$params->{'tsds_push_service'}/push.cgi",
 	uid => $params->{'tsds_user'},
@@ -45,7 +53,7 @@ sub submit_data {
 	usePost => 1
 	);
 
-    foreach my $lsp (keys(%{$params->{'data'}})) {
+    foreach my $lsp (keys(%{$stats})) {
     	my $msg = {};
     	$msg->{'type'} = 'lsp';
     	$msg->{'time'} = $params->{'timestamp'};
@@ -57,9 +65,9 @@ sub submit_data {
     	$msg->{'meta'} = $meta;
 
     	my $values = {};
-    	$values->{'state'} = $params->{'data'}->{$lsp}->{'state'};
-    	$values->{'octets'} = $params->{'data'}->{$lsp}->{'octets'};
-    	$values->{'packets'} = $params->{'data'}->{$lsp}->{'packets'};
+    	$values->{'state'} = $stats->{$lsp}->{'state'};
+    	$values->{'octets'} = $stats->{$lsp}->{'octets'};
+    	$values->{'packets'} = $stats->{$lsp}->{'packets'};
     	$msg->{'values'} = $values;
 
 	my $tmp = [];
@@ -77,14 +85,13 @@ sub submit_data {
 	$msg->{'lsp'} = $lsp;
 	$msg->{'start'} = $params->{'timestamp'};
 	$msg->{'end'} = undef;
-    	$msg->{'destination'} = $params->{'data'}->{$lsp}->{'from'};
-    	$msg->{'source'} = $params->{'data'}->{$lsp}->{'to'};
-    	$msg->{'path'} = $params->{'data'}->{$lsp}->{'path_name'};
+    	$msg->{'destination'} = $stats->{$lsp}->{'from'};
+    	$msg->{'source'} = $stats->{$lsp}->{'to'};
+    	$msg->{'path'} = $stats->{$lsp}->{'path_name'};
 
 	$tmp = [];
 	push(@$tmp, $msg);
 	my $json_admin = encode_json($tmp);
-	
 	my $res_admin = $tsds_admin->update_measurement_metadata(values => $json_admin);
 	if (!defined $res_admin) {
 	    log_error("Could not post metadata to TSDS: " . $res_admin->{'error'});
@@ -93,15 +100,6 @@ sub submit_data {
     }
 
     return 1;
-}
-
-sub collect_data { 
-    my ($self) = @_;
-    my ($timestamp, $res);
-    if (lc($self->{'device'}) eq 'juniper') {
-	($timestamp, $res) = $self->_collect_juniper();
-    }
-    return ($timestamp, $res);
 }
 
 sub _collect_juniper {
