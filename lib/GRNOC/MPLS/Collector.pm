@@ -18,7 +18,7 @@ use Data::Dumper;
 our $VERSION = '0.1.0';
 
 use constant DEFAULT_PID_FILE => '/var/run/mpls-lsp-usage-collector.pid';
-use constant MAX_RATE_VALUE => 2199023255552;
+use constant MAX_RATE_VALUE => 9_007_199_254_740_992;
 
 my $counter;
 my $interval;
@@ -138,20 +138,18 @@ sub _submit_data {
     		$counter->add_measurement($key, $interval, 0, MAX_RATE_VALUE);
     	    }
 
+    	    my $octet_rate = $counter->update_measurement($key, $timestamp, $stats->{$lsp}->{'octets'});
+    	    $octet_rate = ($octet_rate >= 0) ? $octet_rate : undef;
+
     	    $key = "$node_name|$lsp|packets";
     	    if (!exists($counter_keys{$key})) {
     		$counter_keys{$key} = 1;
     		$counter->add_measurement($key, $interval, 0, MAX_RATE_VALUE);
     	    }
 
-    	    my $octet_rate = $counter->update_measurement($key, $timestamp, $stats->{$lsp}->{'octets'});
-    	    $octet_rate = ($octet_rate >= 0) ? $octet_rate : undef;
-
     	    my $packet_rate = $counter->update_measurement($key, $timestamp, $stats->{$lsp}->{'packets'});
     	    $packet_rate = ($packet_rate >= 0) ? $packet_rate : undef;
 	    
-	    warn($counter->display_all());
-
     	    my $msg = {};
     	    $msg->{'type'} = 'lsp';
     	    $msg->{'time'} = $timestamp;
@@ -218,6 +216,7 @@ sub _collect {
 	    log_error("Could not collect data on $node->{'name'}");
 	    $forker-finish() and next;
 	}
+
 	$forker->finish(0, {stats => $stats->{'lsps'}, timestamp => $stats->{'timestamp'}});
     }
 
