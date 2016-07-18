@@ -13,9 +13,7 @@ use GRNOC::Counter;
 use GRNOC::WebService::Client;
 use GRNOC::MPLS::Collector::Driver;
 
-use Data::Dumper;
-
-our $VERSION = '0.1.0';
+our $VERSION = '1.0.0';
 
 use constant DEFAULT_PID_FILE => '/var/run/mpls-lsp-usage-collector.pid';
 use constant MAX_RATE_VALUE => 9_007_199_254_740_992;
@@ -162,8 +160,8 @@ sub _submit_data {
 	    
     	    my $values = {};
     	    $values->{'state'} = $stats->{$lsp}->{'state'};
-    	    $values->{'octets'} = $octet_rate;
-    	    $values->{'packets'} = $packet_rate;
+    	    $values->{'bps'} = (defined $octet_rate) ? $octet_rate * 8 : undef;
+    	    $values->{'pps'} = $packet_rate;
     	    $msg->{'values'} = $values;
 
     	    my $tmp = [];

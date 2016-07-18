@@ -4,10 +4,7 @@ use strict;
 use warnings;
 
 use Net::SNMP;
-
 use GRNOC::Log;
-
-use Data::Dumper;
 
 sub new {
     my $class = shift;
