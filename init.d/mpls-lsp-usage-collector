@@ -1,0 +1,91 @@
+#!/bin/sh
+#
+# mpls-lsp-usage-collector        init script for starting up the MPLS collector daemon
+#
+# chkconfig:   2345 20 80
+# description: Starts and stops the MPLS collector daemon.
+
+# Source function library.
+. /etc/rc.d/init.d/functions
+
+name="mpls-lsp-usage-collector"
+exec="/usr/bin/mpls-lsp-usage-collector.pl"
+pidfile="/var/run/mpls-lsp-usage-collector.pid"
+CONFIG="/etc/grnoc/mpls-lsp-usage-collector/config.xml"
+LOGGING="/etc/grnoc/mpls-lsp-usage-collector/logging.conf"
+
+start() {
+    [ -f $CONFIG ] || exit 6
+    [ -x $exec ] || exit 5
+    echo -n $"Starting $name: "
+    daemon "$exec --config $CONFIG --logging $LOGGING"
+    retval=$?
+    echo
+    return $retval
+}
+
+stop() {
+    echo -n $"Stopping $name: "
+    if [ -f $pidfile ]
+    then
+        # shutdown haven't work, try old way
+        killproc -p $pidfile $name
+        retval=$?
+    else
+        success "$name shutdown"
+    fi
+    echo
+    return $retval
+}
+
+restart() {
+    stop
+    start
+}
+
+reload()
+{
+    echo -n $"Reloading $name: "
+    if [ -f $pidfile ]
+    then
+        killproc -p $pidfile $name -HUP
+    else
+        failure $"Reloading $name"
+    fi
+    retval=$?
+    echo
+    return $retval
+}
+
+rh_status() {
+    status -p $pidfile $name
+}
+
+rh_status_q() {
+    rh_status >/dev/null 2>&1
+}
+
+
+case "$1" in
+    start)
+        rh_status_q && exit 0
+        $1
+        ;;
+    stop)
+        rh_status_q || exit 0
+        $1
+        ;;
+    restart)
+        $1
+        ;;
+    reload)
+    $1
+    ;;
+    status)
+        rh_status
+        ;;
+    *)
+        echo $"Usage: $0 {start|stop|status|restart|reload}"
+        exit 2
+esac
+exit $?
